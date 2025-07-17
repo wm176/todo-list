@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+  <meta charset="UTF-8">
+  <title>Todo List</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      max-width: 600px;
+      margin: auto;
+      padding: 20px;
+    }
+    h1 {
+      text-align: center;
+    }
+    ul {
+      list-style: none;
+      padding-left: 0;
+    }
+    li {
+      padding: 8px;
+      border-bottom: 1px solid #ddd;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .done {
+      text-decoration: line-through;
+      color: gray;
+    }
+    button {
+      margin-left: 10px;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>任务清单</h1>
+
+  <form id="todo-form">
+    <input type="text" id="new-task" placeholder="请输入任务内容" required>
+    <button type="submit">添加任务</button>
+  </form>
+
+  <ul id="todo-list"></ul>
+
+  <script>
+    const API_URL = '/api/todos';
+
+    async function loadTodos() {
+      const res = await fetch(API_URL);
+      const todos = await res.json();
+      const list = document.getElementById('todo-list');
+      list.innerHTML = '';
+      todos.forEach(todo => {
+        const li = document.createElement('li');
+        li.innerHTML = `
+          <span class="${todo.done ? 'done' : ''}" onclick="toggleDone(${todo.id}, ${todo.done})">${todo.title}</span>
+          <button onclick="deleteTodo(${todo.id})">删除</button>
+        `;
+        list.appendChild(li);
+      });
+    }
+
+    async function addTodo(task) {
+      await fetch(API_URL, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ title:task })
+      });
+      await loadTodos();
+    }
+
+    async function deleteTodo(id) {
+      await fetch(`${API_URL}/${id}`, { method: 'DELETE' });
+      await loadTodos();
+    }
+
+    async function toggleDone(id, currentDone) {
+      await fetch(`${API_URL}/${id}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ done: !currentDone })
+      });
+      await loadTodos();
+    }
+
+    document.getElementById('todo-form').addEventListener('submit', async e => {
+      e.preventDefault();
+      const input = document.getElementById('new-task');
+      const task = input.value.trim();
+      if (task) {
+        await addTodo(task);
+        input.value = '';
+      }
+    });
+
+    loadTodos();
+  </script>
+
+</body>
+</html>
